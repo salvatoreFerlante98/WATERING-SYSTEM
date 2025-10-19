@@ -5,6 +5,7 @@
 #include "StatusLED.h"
 #include "Console.h"
 #include "Net.h"
+#include "Config.h"
 #include "Api.h"
 
 Relay      relay;
@@ -12,6 +13,7 @@ SoilSensor soil;
 StatusLED  led;
 Console    console;
 Net        net;
+Config     cfg;
 Api        api;
 
 void setup() {
@@ -20,19 +22,25 @@ void setup() {
   led.begin(PIN_LED, /*activeLow=*/true);
   led.blink(80, 920);
 
+  // Persistenza & calibrazione
+  cfg.begin(&soil, "/config.json");   // LittleFS.begin() incluso qui
+
+  // Wi-Fi
   net.begin("esp12e-01", 180);
-  console.begin(115200, &relay, &soil, &net);
 
-  // Avvia server HTTP API sulla porta 80
-  api.begin(80, &relay, &soil, "esp12e-01");
+  // API
+  api.begin(80, &relay, &soil, "esp12e-01", &cfg);
 
-  Serial.println("Boot OK. API online.");
+  // Console
+  console.begin(115200, &relay, &soil, &net, &cfg);
+
+  Serial.println("Boot OK. Calibrazione & API pronte.");
 }
 
 void loop() {
   relay.update();
   led.update();
   net.update();
-  console.update();
   api.update();
+  console.update();
 }
